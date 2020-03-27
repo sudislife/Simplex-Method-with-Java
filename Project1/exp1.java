@@ -29,7 +29,7 @@ class exp1 {
          System.out.println("cj : ");
          disparr(cj, nov + noc);
 
-         float delij[] = new float[nov + noc];                                     // Δij = Cj - Zj
+         float delij[] = new float[nov + noc];                                  // Δij = Cj - Zj
 
          if(z == 1) {                                                           // Maximize Objective Function
             for(int i = 0; i < noc; i++) {                                      // This loop inputs the constraints
@@ -315,9 +315,9 @@ class exp1 {
       System.out.println("\n\nAns:");
       for(int i = 0; i < noc; i++)
          if(xb[i] < nov)
-            System.out.println("x" + (xb[i] + 1) + " = " + cb[i]);
+            System.out.println("x" + (xb[i] + 1) + " = " + foc[i][nov + noc]);
          else
-            System.out.println("s" + (xb[i] - nov + 1) + " = " + cb[i]);
+            System.out.println("s" + (xb[i] - nov + 1) + " = " + foc[i][nov + noc]);
       System.out.println("Optimal Solution: " + zj[nov + noc]);
 
       System.out.println("\nExecution finished");
