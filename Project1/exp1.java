@@ -10,238 +10,197 @@ class exp1 {
       System.out.print("Type in total number of constraints: ");
       int noc = sc.nextInt();                                                   // Nummber of constraints
 
-      float foc[][] = new float[noc][nov + noc + 1];
-      float zj[] = new float[nov + noc + 1];                                    // Zj = Σ Cb * Xib
-      float cb[] = new float[noc];
-      float xb[] = new float[noc];
-      for(int i = 0; i < noc; i++) {
-         cb[i] = 0;
-         xb[i] = nov + i;
-      }
+      float foc[][] = new float[noc][nov + (2 * noc) + 1];
+      float zj[][] = new float[nov + (2 * noc) + 1][2];                         // Zj = Σ Cb * Xib and last column is cj values
+      float cb[][] = new float[noc][2];                                         // Cb = Cost of Basic Variable
+      int xb[] = new int[noc];
+      int igncol[] = new int[noc];
+      for(int i = 0; i < noc; i++) igncol[i] = -1;
+      for(int i = 0; i < noc; i++)
+         cb[i][0] = 0;
 
       while(true) {
          System.out.print("\nMax Z(Press 1) or Min Z(Press 2): ");
          int z = sc.nextInt();
          System.out.println("Type in objective function equation: ");
-         float cj[] = new float[nov + noc];                                     // Cj = Cost of Basic Variables
-         cj = constinput(nov, nov + noc);
+         float cj[][] = new float[nov + (2 * noc)][2];                          // Cj = Value of Basic Variables
+         float arr2[] = constinput(nov);
+         for(int i = 0; i < nov; i++)
+            cj[i][0] = arr2[i];
 
-         System.out.println("cj : ");
-         disparr(cj, nov + noc);
+         float delij[][] = new float[nov + (2 * noc)][2];                       // Δij = Cj - Zj
 
-         float delij[] = new float[nov + noc];                                  // Δij = Cj - Zj
-
-         if(z == 1) {                                                           // Maximize Objective Function
+         if(z == 1 || z == 2) {                                                 // Maximize Objective Function
             for(int i = 0; i < noc; i++) {                                      // This loop inputs the constraints
-               System.out.println("\nType in function of constraints for equation " + (i + 1) + ":");
+               System.out.println("\nType in the coefficients for equation " + (i + 1) + ":");
                float arr[] = constinput(nov);
                for(int j = 0; j < nov; j++)
                   foc[i][j] = arr[j];
-               foc[i][nov + i] = 1;
-               System.out.print("Type in value after sign: ");
-               foc[i][nov + noc] = sc.nextFloat();
-
                while(true) {
                   System.out.print("Is the sign less than equal to(Type 1) or more than equal to(type 2): ");
                   int sign = sc.nextInt();
                   if(sign == 2) {
-                     for(int j = 0; j < nov; j++)
-                        foc[i][j] = -foc[i][j];
-                     foc[i][nov + noc] = -foc[i][nov + noc];                    // bj cj define
+                     foc[i][nov + i] = -1;                                      // Surplus variable
+                     foc[i][nov + noc + i] = 1;                                 // Artificial variable
+                     xb[i] = nov + noc + i;
+                     if(z == 1)
+                        cj[nov + noc + i][1] = cb[i][1] = -1;
+                     else if(z == 2)
+                        cj[nov + noc + i][1] = cb[i][1] = 1;
                      break;
                   }
 
-                  else if(sign != 1)
+                  else if(sign == 1) {
+                     foc[i][nov + i] = 1;                                       // Slack variable
+                     xb[i] = nov + i;
+                     for(int j = 0; j < noc; j++) {
+                        if(igncol[j] == -1) {
+                           igncol[j] = nov + noc + i;
+                           break;
+                        }
+                     }
+                     cb[i][1] = 0;
+                     break;
+                  }
+
+                  else {
                      System.out.println("Input was not '1' or '2', please try again.");
-
-                  else
-                     break;
-               }
-            }
-
-            System.out.println("Matrix: ");
-            disparr(foc, noc, nov + noc + 1);
-
-            while(true) {
-               boolean condmet = true;
-               for(int j = 0; j < nov + noc + 1; j++)
-                  for(int i = 0; i < noc; i++)
-                     zj[j] += cb[i] * foc[i][j];                                // Zj = Σ Cb * Xib
-
-               System.out.println("Cj : ");
-               disparr(cj, nov + noc);
-
-               System.out.println("Zj : ");
-               disparr(zj, nov + noc + 1);
-
-
-               for(int i = 0; i < nov + noc; i++)
-                  delij[i] = cj[i] - zj[i];                                     // Δij = Cj - Zj
-
-               for(int i = 0; i < nov + noc; i++) {
-                  if(delij[i] > 0) {
-                     condmet = false;
-                     break;
                   }
                }
 
-               System.out.println("Δij : ");
-               disparr(delij, nov + noc);
-
-               if(condmet == true) break;                                       // All Δij <= 0
-
-               int pivot_col = 0;
-               float max_delij = delij[0];                                      // Pivot Column
-               for(int i = 1; i < noc + nov; i++) {
-                  if(delij[i] > max_delij) {
-                     max_delij = delij[i];
-                     pivot_col = i;
-                  }
-               }
-               System.out.println("\nPivot Col = " + pivot_col);
-
-               int pivot_row = -1;                                              // Pivot Row
-               float minposrt[] = new float[noc];                               // Min positive ratio
-               for(int i = 0; i < noc; i++)
-                  minposrt[i] = foc[i][noc + nov] / foc[i][pivot_col];
-
-               boolean setmin = false;
-               float min = 0;
-
-               for(int i = 0; i < noc; i++) {
-                  if(minposrt[i] >= 0) {
-                     if(setmin == false) {
-                        min = minposrt[i];
-                        pivot_row = i;
-                        setmin = true;
-                     }
-
-                     else {
-                        if(min > minposrt[i]) {
-                           min = minposrt[i];
-                           pivot_row = i;
-                        }
-
-                        else if(min == minposrt[i]) {                           // Degeneracy Condition
-                           for(int j = 0; j < noc; j++) {
-                              if(foc[pivot_row][nov + j]/foc[pivot_row][pivot_col] > foc[i][nov + j]/foc[i][pivot_col]) {
-                                 min = minposrt[i];
-                                 pivot_row = i;
-                                 break;
-                              }
-
-                              else if(foc[pivot_row][nov + j]/foc[pivot_row][pivot_col] < foc[i][nov + j]/foc[i][pivot_col])
-                                 break;
-
-                              else
-                                 continue;
-                           }
-                        }
-
-                        else
-                           continue;
-                     }
-                  }
-               }
-
-               System.out.println("\nPivot Row = " + pivot_row);
-
-               xb[pivot_row] = pivot_col;                                       // Changes Xb to that variable
-               cb[pivot_row] = cj[pivot_col];                                   // Changes Cb after init pivot row and pivot col
-
-               float new_foc[][] = new float[noc][nov + noc + 1];
-               for(int i = 0; i < noc; i++) {
-                  for(int j = 0; j < nov + noc + 1; j++) {
-                     if(i == pivot_row) new_foc[pivot_row][j] = foc[pivot_row][j] / foc[pivot_row][pivot_col];
-                     else if(j == pivot_col) new_foc[i][pivot_col] = 0;
-                     else new_foc[i][j] = foc[i][j] - (foc[i][pivot_col] * foc[pivot_row][j] / foc[pivot_row][pivot_col]);
-                  }
-               }
-
-               System.out.println("\nMatrix:");
-               disparr(new_foc, noc, nov + noc + 1);
-
-               for(int i = 0; i < noc; i++)
-                  for(int j = 0; j < nov + noc + 1; j++)
-                     foc[i][j] = new_foc[i][j];
-            }
-
-            break;
-         }
-
-         else if(z == 2) {                                                      // Minimize Objective Function
-            for(int i = 0; i < noc; i++) {                                      // This loop inputs the constraints
-               System.out.println("\nType in function of constraints for equation " + (i + 1) + ":");
-               float arr[] = constinput(nov);
-               for(int j = 0; j < nov; j++)
-                  foc[i][j] = arr[j];
-               foc[i][nov + i] = 1;
                System.out.print("Type in value after sign: ");
-               foc[i][nov + noc] = sc.nextFloat();
-
-               while(true) {
-                  System.out.print("Is the sign less than equal to(Type 1) or more than equal to(type 2): ");
-                  int sign = sc.nextInt();
-                  if(sign == 1) {
-                     for(int j = 0; j < nov; j++)
-                        foc[i][j] = -foc[i][j];
-                     foc[i][nov + noc] = -foc[i][nov + noc];                    // bj cj define
-                     break;
-                  }
-
-                  else if(sign != 2)
-                     System.out.println("Input was not '1' or '2', please try again.");
-
-                  else
-                     break;
-               }
+               foc[i][nov + (2 * noc)] = sc.nextFloat();
             }
-
             System.out.println("Matrix: ");
-            disparr(foc, noc, nov + noc + 1);
+            disparr(foc, noc, nov + (2 * noc) + 1);
 
-            while(true) {
-               boolean condmet = true;
-               for(int j = 0; j < nov + noc + 1; j++)
-                  for(int i = 0; i < noc; i++)
-                     zj[j] += cb[i] * foc[i][j];                                // Zj = Σ Cb * Xib
+            for(int loop = 0; loop < 10; loop++) {
+               boolean condmet = true;                                          // Condition met for breaking out of the loop
+               for(int j = 0; j < nov + (2 * noc) + 1; j++) {
+                  boolean skip = false;
+                  for(int x : igncol) {
+                     if(x == j) {
+                        skip = true;
+                        break;
+                     }
+                  }
+                  if(skip) continue;
 
-               System.out.println("Cj : ");
-               disparr(cj, nov + noc);
+                  zj[j][0] = zj[j][1] = 0;
 
-               System.out.println("Zj : ");
-               disparr(zj, nov + noc + 1);
+                  for(int i = 0; i < noc; i++) {
 
-
-               for(int i = 0; i < nov + noc; i++)
-                  delij[i] = cj[i] - zj[i];                                     // Δij = Cj - Zj
-
-               for(int i = 0; i < nov + noc; i++) {
-                  if(delij[i] > 0) {
-                     condmet = false;
-                     break;
+                     zj[j][0] += cb[i][0] * foc[i][j];                          // Zj = Σ Cb * Xib
+                     zj[j][1] += cb[i][1] * foc[i][j];
                   }
                }
 
-               System.out.println("Δij : ");
-               disparr(delij, nov + noc);
+               System.out.print("\nXb : \n");
+               disparr(xb, xb.length);
 
-               if(condmet == true) break;                                       // All Δij <= 0
+
+               System.out.println("Cj :");
+               disparr(cj, nov + (2 * noc), 2);
+
+               System.out.println("Zj : \n");
+               disparr(zj, nov + (2 * noc) + 1, 2);
+
+
+               for(int i = 0; i < nov + (2 * noc); i++) {
+                  boolean skip = false;
+                  for(int x : igncol) {
+                     if(x == i) {
+                        skip = true;
+                        break;
+                     }
+                  }
+                  if(skip) continue;
+
+                  delij[i][0] = cj[i][0] - zj[i][0];                            // Δij = Cj - Zj
+                  delij[i][1] = cj[i][1] - zj[i][1];
+               }
+
+               for(int i = 0; i < nov + (2 * noc); i++) {
+                  boolean skip = false;
+                  for(int x : igncol) {
+                     if(x == i) {
+                        skip = true;
+                        break;
+                     }
+                  }
+                  if(skip) continue;
+
+                  if(z == 1) {
+                     if(delij[i][1] > 0) {
+                        condmet = false;
+                        break;
+                     }
+                     if(delij[i][0] > 0 && delij[i][1] == 0) {
+                        condmet = false;
+                        break;
+                     }
+                  }
+
+                  else if(z == 2) {
+                     if(delij[i][1] < 0) {
+                        condmet = false;
+                        break;
+                     }
+                     if(delij[i][0] < 0 && delij[i][1] == 0) {
+                        condmet = false;
+                        break;
+                     }
+                  }
+               }
+
+               System.out.println("del ij : ");
+               disparr(delij, nov + (2 * noc), 2);
+
+               if(condmet == true) break;                                       // All Δij <= 0 if max and opp for min
 
                int pivot_col = 0;
-               float max_delij = delij[0];                                      // Pivot Column
-               for(int i = 1; i < noc + nov; i++) {
-                  if(delij[i] > max_delij) {
-                     max_delij = delij[i];
+               float max_delij = delij[0][1];
+               boolean adv1 = true;                                             // All artificial variable del values = 0
+               for(int i = 1; i < nov + (2 * noc); i++) {
+                  boolean skip = false;
+                  for(int x : igncol) {
+                     if(x == i) {
+                        skip = true;
+                        break;
+                     }
+                  }
+                  if(skip) continue;
+
+                  if(delij[i][1] > max_delij) {
+                     max_delij = delij[i][1];
                      pivot_col = i;
                   }
+                  if(delij[i][1] != 0) adv1 = false;
                }
-               System.out.println("\nPivot Col = " + pivot_col);
+               if(adv1 == true) {
+                  max_delij = delij[0][0];                                      // Pivot Column
+                  for(int i = 1; i < nov + (2 * noc); i++) {
+                     boolean skip = false;
+                     for(int x : igncol) {
+                        if(x == i) {
+                           skip = true;
+                           break;
+                        }
+                     }
+                     if(skip) continue;
 
-               int pivot_row = -1;                                              // Pivot Row
+                     if(delij[i][0] > max_delij) {
+                        max_delij = delij[i][0];
+                        pivot_col = i;
+                     }
+                  }
+               }
+               System.out.println("\nPivot Col = " + (pivot_col + 1));
+
+               int pivot_row = 0;                                               // Pivot Row
                float minposrt[] = new float[noc];                               // Min positive ratio
                for(int i = 0; i < noc; i++)
-                  minposrt[i] = foc[i][noc + nov] / foc[i][pivot_col];
+                  minposrt[i] = foc[i][nov + (2 * noc)] / foc[i][pivot_col];
 
                boolean setmin = false;
                float min = 0;
@@ -282,14 +241,37 @@ class exp1 {
                   }
                }
 
-               System.out.println("\nPivot Row = " + pivot_row);
+               System.out.println("\nPivot Row = " + (pivot_row + 1));
+
+               if(xb[pivot_row] >= nov + noc) {                                 // Adds AV to ignore column array
+                  for(int i = 0; i < noc; i++) {
+                     if(igncol[i] == -1) {
+                        igncol[i] = xb[pivot_row];
+                        break;
+                     }
+                  }
+               }
+
+               System.out.print("Igncol: \n");
+               disparr(igncol, igncol.length);                                  // Displays igncol
 
                xb[pivot_row] = pivot_col;                                       // Changes Xb to that variable
-               cb[pivot_row] = cj[pivot_col];                                   // Changes Cb after init pivot row and pivot col
+               cb[pivot_row][0] = cj[pivot_col][0];                             // Changes Cb after init pivot row and pivot col
+               cb[pivot_row][1] = cj[pivot_col][1];
 
-               float new_foc[][] = new float[noc][nov + noc + 1];
+
+               float new_foc[][] = new float[noc][nov + (2 * noc) + 1];
                for(int i = 0; i < noc; i++) {
-                  for(int j = 0; j < nov + noc + 1; j++) {
+                  for(int j = 0; j < nov + (2 * noc) + 1; j++) {
+                     boolean skip = false;
+                     for(int x : igncol) {
+                        if(x == j) {
+                           skip = true;
+                           break;
+                        }
+                     }
+                     if(skip) continue;
+
                      if(i == pivot_row) new_foc[pivot_row][j] = foc[pivot_row][j] / foc[pivot_row][pivot_col];
                      else if(j == pivot_col) new_foc[i][pivot_col] = 0;
                      else new_foc[i][j] = foc[i][j] - (foc[i][pivot_col] * foc[pivot_row][j] / foc[pivot_row][pivot_col]);
@@ -297,12 +279,11 @@ class exp1 {
                }
 
                System.out.println("\nMatrix:");
-               disparr(new_foc, noc, nov + noc + 1);
+               disparr(new_foc, noc, nov + (2 * noc) + 1);
 
                for(int i = 0; i < noc; i++)
-                  for(int j = 0; j < nov + noc + 1; j++)
+                  for(int j = 0; j < nov + (2 * noc) + 1; j++)
                      foc[i][j] = new_foc[i][j];
-
             }
 
             break;
@@ -316,9 +297,11 @@ class exp1 {
       for(int i = 0; i < noc; i++)
          if(xb[i] < nov)
             System.out.println("x" + (xb[i] + 1) + " = " + foc[i][nov + noc]);
-         else
+         else if(xb[i] >= nov && xb[i] < (nov + noc))
             System.out.println("s" + (xb[i] - nov + 1) + " = " + foc[i][nov + noc]);
-      System.out.println("Optimal Solution: " + zj[nov + noc]);
+         else
+            System.out.println("A" + (xb[i] - nov - noc + 1) + " = " + foc[i][nov + noc]);
+      System.out.println("Optimal Solution: " + zj[nov + (2 * noc)][0]);
 
       System.out.println("\nExecution finished");
    }
@@ -354,6 +337,17 @@ class exp1 {
    }
 
    static void disparr(float arr[], int n) {
+      for(int j = 0; j < n; j++) {
+         if(j == 0)
+            System.out.print("[ " + arr[j] + ", ");
+         else if(j == (n - 1))
+            System.out.println(arr[j] + " ]");
+         else
+            System.out.print(arr[j] + ", ");
+      }
+   }
+
+   static void disparr(int arr[], int n) {
       for(int j = 0; j < n; j++) {
          if(j == 0)
             System.out.print("[ " + arr[j] + ", ");
