@@ -14,8 +14,8 @@ class exp1 {
       float zj[][] = new float[nov + (2 * noc) + 1][2];                         // Zj = Σ Cb * Xib and last column is cj values
       float cb[][] = new float[noc][2];                                         // Cb = Cost of Basic Variable
       int xb[] = new int[noc];
-      int igncol[] = new int[noc];
-      for(int i = 0; i < noc; i++) igncol[i] = -1;
+      int igncol[] = new int[2 * noc];
+      for(int i = 0; i < igncol.length; i++) igncol[i] = -1;
       for(int i = 0; i < noc; i++)
          cb[i][0] = 0;
 
@@ -37,10 +37,26 @@ class exp1 {
                for(int j = 0; j < nov; j++)
                   foc[i][j] = arr[j];
                while(true) {
-                  System.out.print("Is the sign less than equal to(Type 1) or more than equal to(type 2): ");
+                  System.out.print("Is the sign less than equal to(Type 1) or more than equal to(type 2) or equal to(type 3): ");
                   int sign = sc.nextInt();
                   if(sign == 2) {
                      foc[i][nov + i] = -1;                                      // Surplus variable
+                     foc[i][nov + noc + i] = 1;                                 // Artificial variable
+                     xb[i] = nov + noc + i;
+                     if(z == 1)
+                        cj[nov + noc + i][1] = cb[i][1] = -1;
+                     else if(z == 2)
+                        cj[nov + noc + i][1] = cb[i][1] = 1;
+                     break;
+                  }
+
+                  else if(sign == 3) {
+                     for(int j = 0; j < noc; j++) {
+                        if(igncol[j] == -1) {
+                           igncol[j] = nov + i;                                 // Puts surplus variable column in igncol
+                           break;
+                        }
+                     }
                      foc[i][nov + noc + i] = 1;                                 // Artificial variable
                      xb[i] = nov + noc + i;
                      if(z == 1)
@@ -55,7 +71,7 @@ class exp1 {
                      xb[i] = nov + i;
                      for(int j = 0; j < noc; j++) {
                         if(igncol[j] == -1) {
-                           igncol[j] = nov + noc + i;
+                           igncol[j] = nov + noc + i;                           // Puts Artificial variable column in the igncol
                            break;
                         }
                      }
@@ -64,15 +80,15 @@ class exp1 {
                   }
 
                   else {
-                     System.out.println("Input was not '1' or '2', please try again.");
+                     System.out.println("Input was not '1', '2' or '3', please try again.");
                   }
                }
 
                System.out.print("Type in value after sign: ");
                foc[i][nov + (2 * noc)] = sc.nextFloat();
             }
-            System.out.println("Matrix: ");
-            disparr(foc, noc, nov + (2 * noc) + 1);
+            System.out.println("\n\nMatrix 0: ");
+            disparrm(foc, noc, nov + (2 * noc) + 1);
 
             for(int loop = 0; loop < 10; loop++) {
                boolean condmet = true;                                          // Condition met for breaking out of the loop
@@ -95,14 +111,13 @@ class exp1 {
                   }
                }
 
-               System.out.print("\nXb : \n");
+               System.out.print("\nXb " + loop + ": \n");
                disparr(xb, xb.length);
 
-
-               System.out.println("Cj :");
+               System.out.println("\nCj " + loop + ":");
                disparr(cj, nov + (2 * noc), 2);
 
-               System.out.println("Zj : \n");
+               System.out.println("\nZj " + loop + ": ");
                disparr(zj, nov + (2 * noc) + 1, 2);
 
 
@@ -153,7 +168,7 @@ class exp1 {
                   }
                }
 
-               System.out.println("del ij : ");
+               System.out.println("\ndel ij " + loop + ": ");
                disparr(delij, nov + (2 * noc), 2);
 
                if(condmet == true) break;                                       // All Δij <= 0 if max and opp for min
@@ -195,7 +210,7 @@ class exp1 {
                      }
                   }
                }
-               System.out.println("\nPivot Col = " + (pivot_col + 1));
+               System.out.println("\nPivot Col " + loop + " = " + (pivot_col + 1));
 
                int pivot_row = 0;                                               // Pivot Row
                float minposrt[] = new float[noc];                               // Min positive ratio
@@ -241,7 +256,7 @@ class exp1 {
                   }
                }
 
-               System.out.println("\nPivot Row = " + (pivot_row + 1));
+               System.out.println("Pivot Row " + loop + " = " + (pivot_row + 1));
 
                if(xb[pivot_row] >= nov + noc) {                                 // Adds AV to ignore column array
                   for(int i = 0; i < noc; i++) {
@@ -252,7 +267,7 @@ class exp1 {
                   }
                }
 
-               System.out.print("Igncol: \n");
+               System.out.print("\nIgncol" + loop + " : \n");
                disparr(igncol, igncol.length);                                  // Displays igncol
 
                xb[pivot_row] = pivot_col;                                       // Changes Xb to that variable
@@ -278,8 +293,8 @@ class exp1 {
                   }
                }
 
-               System.out.println("\nMatrix:");
-               disparr(new_foc, noc, nov + (2 * noc) + 1);
+               System.out.println("\n\n\nMatrix " + (loop + 1) + " :");
+               disparrm(new_foc, noc, nov + (2 * noc) + 1);
 
                for(int i = 0; i < noc; i++)
                   for(int j = 0; j < nov + (2 * noc) + 1; j++)
@@ -324,6 +339,19 @@ class exp1 {
    }
 
    static void disparr(float arr[][], int m, int n) {                           // Display 2d array
+      for(int j = 0; j < n; j++) {
+         for(int i = 0; i < m; i++) {
+            if(i == 0)
+               System.out.print("[ " + arr[i][j] + ", ");
+            else if(i == (m - 1))
+               System.out.println(arr[i][j] + " ]");
+            else
+               System.out.print(arr[i][j] + ", ");
+         }
+      }
+   }
+
+   static void disparrm(float arr[][], int m, int n) {                          // Display 2d array
       for(int i = 0; i < m; i++) {
          for(int j = 0; j < n; j++) {
             if(j == 0)
@@ -351,7 +379,7 @@ class exp1 {
       for(int j = 0; j < n; j++) {
          if(j == 0)
             System.out.print("[ " + arr[j] + ", ");
-         else if(j == (n - 1))
+         if(j == (n - 1))
             System.out.println(arr[j] + " ]");
          else
             System.out.print(arr[j] + ", ");
