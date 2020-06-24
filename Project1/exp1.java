@@ -51,7 +51,7 @@ class exp1 {
                   }
 
                   else if(sign == 3) {
-                     for(int j = 0; j < noc; j++) {
+                     for(int j = 0; j < igncol.length; j++) {
                         if(igncol[j] == -1) {
                            igncol[j] = nov + i;                                 // Puts surplus variable column in igncol
                            break;
@@ -69,11 +69,13 @@ class exp1 {
                   else if(sign == 1) {
                      foc[i][nov + i] = 1;                                       // Slack variable
                      xb[i] = nov + i;
-                     for(int j = 0; j < noc; j++) {
+                     for(int j = 0; j < igncol.length; j++) {
                         if(igncol[j] == -1) {
                            igncol[j] = nov + noc + i;                           // Puts Artificial variable column in the igncol
                            break;
                         }
+                        else
+                           continue;
                      }
                      cb[i][1] = 0;
                      break;
@@ -90,8 +92,13 @@ class exp1 {
             System.out.println("\n\nMatrix 0: ");
             disparrm(foc, noc, nov + (2 * noc) + 1);
 
+
             for(int loop = 0; loop < 10; loop++) {
                boolean condmet = true;                                          // Condition met for breaking out of the loop
+
+               System.out.print("\nXb " + loop + ": \n");
+               disparr(xb, noc);
+
                for(int j = 0; j < nov + (2 * noc) + 1; j++) {
                   boolean skip = false;
                   for(int x : igncol) {
@@ -110,9 +117,6 @@ class exp1 {
                      zj[j][1] += cb[i][1] * foc[i][j];
                   }
                }
-
-               System.out.print("\nXb " + loop + ": \n");
-               disparr(xb, xb.length);
 
                System.out.println("\nCj " + loop + ":");
                disparr(cj, nov + (2 * noc), 2);
@@ -175,26 +179,10 @@ class exp1 {
 
                int pivot_col = 0;
                float max_delij = delij[0][1];
+               float min_delij = delij[0][1];
                boolean adv1 = true;                                             // All artificial variable del values = 0
                for(int i = 1; i < nov + (2 * noc); i++) {
-                  boolean skip = false;
-                  for(int x : igncol) {
-                     if(x == i) {
-                        skip = true;
-                        break;
-                     }
-                  }
-                  if(skip) continue;
-
-                  if(delij[i][1] > max_delij) {
-                     max_delij = delij[i][1];
-                     pivot_col = i;
-                  }
-                  if(delij[i][1] != 0) adv1 = false;
-               }
-               if(adv1 == true) {
-                  max_delij = delij[0][0];                                      // Pivot Column
-                  for(int i = 1; i < nov + (2 * noc); i++) {
+                  if(z == 1) {
                      boolean skip = false;
                      for(int x : igncol) {
                         if(x == i) {
@@ -204,9 +192,66 @@ class exp1 {
                      }
                      if(skip) continue;
 
-                     if(delij[i][0] > max_delij) {
-                        max_delij = delij[i][0];
+                     if(delij[i][1] > max_delij) {
+                        max_delij = delij[i][1];
                         pivot_col = i;
+                     }
+                     if(delij[i][1] != 0) adv1 = false;
+                  }
+
+                  if(z == 2) {
+                     boolean skip = false;
+                     for(int x : igncol) {
+                        if(x == i) {
+                           skip = true;
+                           break;
+                        }
+                     }
+                     if(skip) continue;
+
+                     if(delij[i][1] < min_delij) {
+                        min_delij = delij[i][1];
+                        pivot_col = i;
+                     }
+                     if(delij[i][1] != 0) adv1 = false;
+                  }
+               }
+               if(adv1 == true) {
+                  if(z == 1) {
+                     max_delij = delij[0][0];                                   // Pivot Column
+                     for(int i = 1; i < nov + (2 * noc); i++) {
+                        boolean skip = false;
+                        for(int x : igncol) {
+                           if(x == i) {
+                              skip = true;
+                              break;
+                           }
+                        }
+                        if(skip) continue;
+
+                        if(delij[i][0] > max_delij) {
+                           max_delij = delij[i][0];
+                           pivot_col = i;
+                        }
+                     }
+                  }
+
+                  if(z == 2) {
+                     min_delij = delij[0][0];                                   // Pivot Column
+                     for(int i = 1; i < nov + (2 * noc); i++) {
+                        boolean skip = false;
+                        for(int x : igncol) {
+                           if(x == i) {
+                              skip = true;
+                              break;
+                           }
+                        }
+                        if(skip) continue;
+
+                        if(delij[i][0] < min_delij) {
+                           min_delij = delij[i][0];
+                           pivot_col = i;
+                        }
                      }
                   }
                }
@@ -222,11 +267,17 @@ class exp1 {
 
                for(int i = 0; i < noc; i++) {
                   if(minposrt[i] >= 0) {
+                     if(foc[i][nov + (2 * noc)] == 0.0) {                       // Skips if 0/-ve
+                        if(foc[i][pivot_col] < 0)
+                           continue;
+                     }
+
                      if(setmin == false) {
                         min = minposrt[i];
                         pivot_row = i;
                         setmin = true;
                      }
+
 
                      else {
                         if(min > minposrt[i]) {
@@ -259,7 +310,7 @@ class exp1 {
                System.out.println("Pivot Row " + loop + " = " + (pivot_row + 1));
 
                if(xb[pivot_row] >= nov + noc) {                                 // Adds AV to ignore column array
-                  for(int i = 0; i < noc; i++) {
+                  for(int i = 0; i < igncol.length; i++) {
                      if(igncol[i] == -1) {
                         igncol[i] = xb[pivot_row];
                         break;
@@ -311,11 +362,11 @@ class exp1 {
       System.out.println("\n\nAns:");
       for(int i = 0; i < noc; i++)
          if(xb[i] < nov)
-            System.out.println("x" + (xb[i] + 1) + " = " + foc[i][nov + noc]);
+            System.out.println("x" + (xb[i] + 1) + " = " + foc[i][nov + (2 * noc)]);
          else if(xb[i] >= nov && xb[i] < (nov + noc))
-            System.out.println("s" + (xb[i] - nov + 1) + " = " + foc[i][nov + noc]);
+            System.out.println("s" + (xb[i] - nov + 1) + " = " + foc[i][nov + (2 * noc)]);
          else
-            System.out.println("A" + (xb[i] - nov - noc + 1) + " = " + foc[i][nov + noc]);
+            System.out.println("A" + (xb[i] - nov - noc + 1) + " = " + foc[i][nov + (2 * noc)]);
       System.out.println("Optimal Solution: " + zj[nov + (2 * noc)][0]);
 
       System.out.println("\nExecution finished");
@@ -377,8 +428,10 @@ class exp1 {
 
    static void disparr(int arr[], int n) {
       for(int j = 0; j < n; j++) {
-         if(j == 0)
+         if(j == 0) {
             System.out.print("[ " + arr[j] + ", ");
+            continue;
+         }
          if(j == (n - 1))
             System.out.println(arr[j] + " ]");
          else
