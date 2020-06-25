@@ -285,7 +285,7 @@ class exp1 {
                            pivot_row = i;
                         }
 
-                        else if(min == minposrt[i]) {                           // Degeneracy Condition
+                        else if(min == minposrt[i]) {                           // ?? Condition
                            for(int j = 0; j < noc; j++) {
                               if(foc[pivot_row][nov + j]/foc[pivot_row][pivot_col] > foc[i][nov + j]/foc[i][pivot_col]) {
                                  min = minposrt[i];
